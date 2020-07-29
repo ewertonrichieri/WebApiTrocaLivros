@@ -1,12 +1,7 @@
-﻿using MongoDB.Bson;
-using MongoDB.Driver;
+﻿using MongoDB.Driver;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
-using System.Net.Http;
-using System.Runtime.Remoting.Contexts;
-using System.Security.Cryptography.X509Certificates;
 using System.Web.Http;
 using System.Web.Http.Cors;
 using WebApp.Models;
@@ -22,7 +17,7 @@ namespace WebApp.Controllers
 
         [HttpPost]
         [Route("criarUsuario/{nome}/{idade:int}/{cidade}/{email}/{senha}/{estado=null}")]
-        public IHttpActionResult PostCadastrarUsuario(string nome, int idade, string cidade, string email, string senha, string estado = null)
+        public IHttpActionResult CadastrarUsuario(string nome, int idade, string cidade, string email, string senha, string estado = null)
         {
             try
             {
@@ -30,7 +25,8 @@ namespace WebApp.Controllers
                 IMongoDatabase database = client.GetDatabase("TrocaLivro");
                 IMongoCollection<Usuario> collect = database.GetCollection<Usuario>("Usuario");
 
-                if (!string.IsNullOrEmpty(collect.Find(c => c.Nome == nome).FirstOrDefault().ToString())) {
+                if (!string.IsNullOrEmpty(collect.Find(c => c.Nome == nome).FirstOrDefault().ToString()))
+                {
 
                     return Ok("Erro, Nome de usuário já cadastrado");
                 }
@@ -41,10 +37,12 @@ namespace WebApp.Controllers
                 }
 
                 Usuario usuario = new Usuario();
+
                 usuario.Nome = nome;
                 usuario.Idade = idade;
                 usuario.Cidade = cidade;
                 usuario.Email = email;
+                usuario.DataRegistro = DateTime.Now;
                 usuario.Senha = Base64Encode(senha);
                 if (string.IsNullOrEmpty(estado)) { usuario.Estado = estado; }
 
@@ -53,25 +51,70 @@ namespace WebApp.Controllers
             }
             catch (Exception e)
             {
-
                 return InternalServerError(e);
             }
         }
+
+        [HttpGet]
+        [Route("autenticarUsuario/{nome}/{email}/{senha}")]
+        public IHttpActionResult AuthenticarUsuario(string nome, string email, string senha)
+        {
+            try
+            {
+                var result = string.Empty;
+                IMongoClient client = new MongoClient(conexaoMongo);
+                IMongoDatabase database = client.GetDatabase("TrocaLivro");
+                List<Usuario> collect = database.GetCollection<Usuario>("Usuario").AsQueryable().ToList();
+
+                if (collect.Any(user => user.Nome == nome))
+                {
+                    if (collect.Any(user => user.Nome == nome && user.Email == email))
+                    {
+                        if (collect.Any(user => user.Nome == nome && user.Email == email && user.Senha == senha))
+                        {
+                            result = "Usuário autenticado com sucesso";
+                        }
+                        else
+                        {
+                            result = "Senha incorreta";
+                        }
+                    }
+                    else
+                    {
+                        result = "Email incorreto";
+                    }
+                }
+                else
+                {
+                    result = "Usuário não encontrado";
+                }
+
+                return Ok(result);
+            }
+            catch (Exception e)
+            {
+                return InternalServerError(e);
+            }
+        }
+
         public IHttpActionResult GetLista()
         {
             try
             {
                 IMongoClient client = new MongoClient(conexaoMongo);
                 IMongoDatabase database = client.GetDatabase("TrocaLivro");
-                IMongoCollection<Usuario> collect = database.GetCollection<Usuario>("Usuario");
+                var collect = database.GetCollection<Usuario>("Usuario").AsQueryable();
 
-                return Ok(collect);
+                List<Usuario> lista = collect.ToList();
+
+                return Ok(lista);
             }
             catch (Exception e)
             {
-              return  InternalServerError(e);
+                return InternalServerError(e);
             }
         }
+
 
         public static string Base64Encode(string text)
         {
