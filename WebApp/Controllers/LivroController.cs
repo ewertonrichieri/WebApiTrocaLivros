@@ -13,7 +13,8 @@ namespace WebApp.Controllers
     public class LivroController : ApiController
     {
 
-        string conexaoMongo = "mongodb+srv://Livros:livros@caronas.n5wca.gcp.mongodb.net/Livros?retryWrites=true";
+        //string conexaoMongo = "mongodb+srv://Livros:livros@caronas.n5wca.gcp.mongodb.net/Livros?retryWrites=true";
+        string conexaoMongo = "mongodb+srv://Livros:Livros@trocalivrostcc.nsbyt.gcp.mongodb.net/Livros?retryWrites=true&w=majority";
 
         [HttpPost]
         [Route("criarUsuario/{nome}/{idade:int}/{cidade}/{email}/{senha}/{estado=null}")]
@@ -25,13 +26,13 @@ namespace WebApp.Controllers
                 IMongoDatabase database = client.GetDatabase("TrocaLivro");
                 IMongoCollection<Usuario> collect = database.GetCollection<Usuario>("Usuario");
 
-                if (!string.IsNullOrEmpty(collect.Find(c => c.Nome == nome).FirstOrDefault().ToString()))
+                if ((collect.Find(c => c.Nome == nome).FirstOrDefault()) != null)
                 {
 
                     return Ok("Erro, Nome de usuário já cadastrado");
                 }
 
-                if (!string.IsNullOrEmpty(collect.Find(c => c.Email == email).FirstOrDefault().ToString()))
+                if ((collect.Find(c => c.Email == email).FirstOrDefault()) != null)
                 {
                     return Ok("Erro, Email já esta cadastrado");
                 }
@@ -42,6 +43,7 @@ namespace WebApp.Controllers
                 usuario.Idade = idade;
                 usuario.Cidade = cidade;
                 usuario.Email = email;
+                usuario.Estado = estado;
                 usuario.DataRegistro = DateTime.Now;
                 usuario.Senha = Base64Encode(senha);
                 if (string.IsNullOrEmpty(estado)) { usuario.Estado = estado; }
@@ -61,6 +63,7 @@ namespace WebApp.Controllers
         {
             try
             {
+                //falta codificar a senha em base 64 para fazer a comparação
                 var result = string.Empty;
                 IMongoClient client = new MongoClient(conexaoMongo);
                 IMongoDatabase database = client.GetDatabase("TrocaLivro");
@@ -70,7 +73,7 @@ namespace WebApp.Controllers
                 {
                     if (collect.Any(user => user.Nome == nome && user.Email == email))
                     {
-                        if (collect.Any(user => user.Nome == nome && user.Email == email && user.Senha == senha))
+                        if (collect.Any(user => user.Nome == nome && user.Email == email && user.Senha == Base64Encode(senha)))
                         {
                             result = "Usuário autenticado com sucesso";
                         }
@@ -97,6 +100,8 @@ namespace WebApp.Controllers
             }
         }
 
+        [HttpGet]
+        [Route("listarUsuarios")]
         public IHttpActionResult GetLista()
         {
             try
