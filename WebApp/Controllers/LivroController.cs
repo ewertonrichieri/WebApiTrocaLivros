@@ -12,8 +12,12 @@ namespace WebApp.Controllers
     [RoutePrefix("api/livros")]
     public class LivroController : ApiController
     {
+        private enum StatusResponse
+        {
+            OK,
+            ERROR
+        }
 
-        //string conexaoMongo = "mongodb+srv://Livros:livros@caronas.n5wca.gcp.mongodb.net/Livros?retryWrites=true";
         string conexaoMongo = "mongodb+srv://Livros:Livros@trocalivrostcc.nsbyt.gcp.mongodb.net/Livros?retryWrites=true&w=majority";
 
         [HttpPost]
@@ -25,16 +29,24 @@ namespace WebApp.Controllers
                 IMongoClient client = new MongoClient(conexaoMongo);
                 IMongoDatabase database = client.GetDatabase("TrocaLivro");
                 IMongoCollection<Usuario> collect = database.GetCollection<Usuario>("Usuario");
+                MessageError messageError = new MessageError();
 
                 if ((collect.Find(c => c.Nome == nome).FirstOrDefault()) != null)
                 {
+                    messageError.status = StatusResponse.ERROR.ToString();
+                    messageError.msg = "Nome de usuário já cadastrado";
+                    messageError.code = 409;
 
-                    return Ok("Erro, Nome de usuário já cadastrado");
+                    return Ok(messageError);
                 }
 
                 if ((collect.Find(c => c.Email == email).FirstOrDefault()) != null)
                 {
-                    return Ok("Erro, Email já esta cadastrado");
+                    messageError.status = StatusResponse.ERROR.ToString();
+                    messageError.msg = "Email já esta cadastrado";
+                    messageError.code = 412;
+
+                    return Ok(messageError);
                 }
 
                 Usuario usuario = new Usuario();
@@ -48,8 +60,13 @@ namespace WebApp.Controllers
                 usuario.Senha = Base64Encode(senha);
                 if (string.IsNullOrEmpty(estado)) { usuario.Estado = estado; }
 
+                messageError.msg = "Usuário cadastrado com sucesso";
+                messageError.status = StatusResponse.OK.ToString();
+                messageError.code = 200;
+
                 collect.InsertOne(usuario);
-                return Ok("Ok, Usuário cadastrado com sucesso");
+
+                return Ok(messageError);
             }
             catch (Exception e)
             {
@@ -69,30 +86,40 @@ namespace WebApp.Controllers
                 IMongoDatabase database = client.GetDatabase("TrocaLivro");
                 List<Usuario> collect = database.GetCollection<Usuario>("Usuario").AsQueryable().ToList();
 
+                MessageError messageError = new MessageError();
+
                 if (collect.Any(user => user.Nome == nome))
                 {
                     if (collect.Any(user => user.Nome == nome && user.Email == email))
                     {
                         if (collect.Any(user => user.Nome == nome && user.Email == email && user.Senha == Base64Encode(senha)))
                         {
-                            result = "Usuário autenticado com sucesso";
+                            messageError.status = StatusResponse.OK.ToString();
+                            messageError.code = 200;
+                            messageError.msg = "Usuário autenticado com sucesso";
                         }
                         else
                         {
-                            result = "Senha incorreta";
+                            messageError.status = StatusResponse.ERROR.ToString();
+                            messageError.code = 406;
+                            messageError.msg = "Senha incorreta";
                         }
                     }
                     else
                     {
-                        result = "Email incorreto";
+                        messageError.status = StatusResponse.ERROR.ToString();
+                        messageError.code = 405;
+                        messageError.msg = "Email incorreto";
                     }
                 }
                 else
                 {
-                    result = "Usuário não encontrado";
+                    messageError.status = StatusResponse.ERROR.ToString();
+                    messageError.code = 407;
+                    messageError.msg = "Usuário não encontrado";
                 }
 
-                return Ok(result);
+                return Ok(messageError);
             }
             catch (Exception e)
             {
