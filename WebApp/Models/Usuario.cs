@@ -34,5 +34,8 @@ namespace WebApp.Models
 
         [Display(Name = "DataRegistro")]
         public DateTime DataRegistro { get; set; }
+
+        [Display(Name = "DataAlteracao")]
+        public DateTime DataAlteracao { get; set; }
     }
 }

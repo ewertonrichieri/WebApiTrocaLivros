@@ -1,4 +1,5 @@
-﻿using MongoDB.Driver;
+﻿using MongoDB.Bson;
+using MongoDB.Driver;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -57,6 +58,7 @@ namespace WebApp.Controllers
                 usuario.Email = email;
                 usuario.Estado = estado;
                 usuario.DataRegistro = DateTime.Now;
+                usuario.DataAlteracao = DateTime.Now;
                 usuario.Senha = Base64Encode(senha);
                 if (string.IsNullOrEmpty(estado)) { usuario.Estado = estado; }
 
@@ -94,9 +96,11 @@ namespace WebApp.Controllers
                     {
                         if (collect.Any(user => user.Nome == nome && user.Email == email && user.Senha == Base64Encode(senha)))
                         {
+                            var user = collect.Find(c => c.Nome == nome && c.Email == email);
                             messageError.status = StatusResponse.OK.ToString();
                             messageError.code = 200;
                             messageError.msg = "Usuário autenticado com sucesso";
+                            messageError.id = user.Id.ToString();
                         }
                         else
                         {
@@ -145,6 +149,44 @@ namespace WebApp.Controllers
             {
                 return InternalServerError(e);
             }
+        }
+
+        [HttpPut]
+        [Route("atualizarDadosPessoais/{id}")]
+        public IHttpActionResult AtualizarDadosPessoais(string id)
+        {
+
+            try
+            {
+                //teste
+                Usuario u = new Usuario();
+                //u.Id = ObjectId("5f4052a8dd3db438e03b50e5");
+                u.Nome = "Ewerton Richieri Lopes";
+                u.Idade = 18;
+                u.Cidade = "Atlanta Bar";
+                u.Email = "contato.ewertonrichieri@gmail.com";
+                u.Senha = "dGVzdGU=";
+                u.Estado = null;
+                u.DataRegistro = DateTime.Now;
+               
+
+                var idJson = ObjectId.Parse(id);
+
+                IMongoClient client = new MongoClient(conexaoMongo);
+                IMongoDatabase database = client.GetDatabase("TrocaLivro");
+                IMongoCollection<Usuario> collect = database.GetCollection<Usuario>("Usuario");
+
+                var teste2 = collect.Find(c =>  c.Id == idJson).FirstOrDefault();
+                teste2.Cidade = "Natal BR";
+
+                collect.ReplaceOne(c => c.Nome == u.Nome, teste2);
+
+            }
+            catch (Exception e)
+            {
+                return InternalServerError(new Exception(e.Message));
+            }
+            return Ok("");
         }
 
 
