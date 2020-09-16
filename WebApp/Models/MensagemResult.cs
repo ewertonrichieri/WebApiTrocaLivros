@@ -7,7 +7,7 @@ using System.Web;
 
 namespace WebApp.Models
 {
-    public class MessageError
+    public class MensagemResult
     {
        
         public string id { get; set; }

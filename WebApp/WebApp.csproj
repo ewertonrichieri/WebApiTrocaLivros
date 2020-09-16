@@ -185,7 +185,7 @@
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
-    <Compile Include="Models\MessageError.cs" />
+    <Compile Include="Models\MensagemResult.cs" />
     <Compile Include="Models\MongoDB.cs" />
     <Compile Include="Models\Pais.cs" />
     <Compile Include="Models\Usuario.cs" />

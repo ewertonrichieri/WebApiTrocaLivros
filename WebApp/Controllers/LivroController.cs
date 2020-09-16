@@ -3,6 +3,8 @@ using MongoDB.Driver;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Mail;
+using System.Text.RegularExpressions;
 using System.Web.Http;
 using System.Web.Http.Cors;
 using WebApp.Models;
@@ -30,7 +32,7 @@ namespace WebApp.Controllers
                 IMongoClient client = new MongoClient(conexaoMongo);
                 IMongoDatabase database = client.GetDatabase("TrocaLivro");
                 IMongoCollection<Usuario> collect = database.GetCollection<Usuario>("Usuario");
-                MessageError messageError = new MessageError();
+                MensagemResult messageError = new MensagemResult();
 
                 if ((collect.Find(c => c.Nome == nome).FirstOrDefault()) != null)
                 {
@@ -88,7 +90,7 @@ namespace WebApp.Controllers
                 IMongoDatabase database = client.GetDatabase("TrocaLivro");
                 List<Usuario> collect = database.GetCollection<Usuario>("Usuario").AsQueryable().ToList();
 
-                MessageError messageError = new MessageError();
+                MensagemResult messageError = new MensagemResult();
 
                 if (collect.Any(user => user.Nome == nome))
                 {
@@ -153,22 +155,22 @@ namespace WebApp.Controllers
 
         [HttpPut]
         [Route("atualizarDadosPessoais/{id}")]
-        public IHttpActionResult AtualizarDadosPessoais(string id)
+        public IHttpActionResult AtualizaDadosPessoaisPorId(string id, string nome = null, int idade = 0,
+            string cidade = null, string email = null, string senha = null, string estado = null)
         {
-
             try
             {
                 //teste
-                Usuario u = new Usuario();
+                //Usuario u = new Usuario();
                 //u.Id = ObjectId("5f4052a8dd3db438e03b50e5");
-                u.Nome = "Ewerton Richieri Lopes";
-                u.Idade = 18;
-                u.Cidade = "Atlanta Bar";
-                u.Email = "contato.ewertonrichieri@gmail.com";
-                u.Senha = "dGVzdGU=";
-                u.Estado = null;
-                u.DataRegistro = DateTime.Now;
-               
+                //u.Nome = "Ewerton Richieri Lopes";
+                //u.Idade = 18;
+                //u.Cidade = "Atlanta Bar";
+                //u.Email = "contato.ewertonrichieri@gmail.com";
+                //u.Senha = "dGVzdGU=";
+                //u.Estado = null;
+                //u.DataRegistro = DateTime.Now;
+
 
                 var idJson = ObjectId.Parse(id);
 
@@ -176,17 +178,109 @@ namespace WebApp.Controllers
                 IMongoDatabase database = client.GetDatabase("TrocaLivro");
                 IMongoCollection<Usuario> collect = database.GetCollection<Usuario>("Usuario");
 
-                var teste2 = collect.Find(c =>  c.Id == idJson).FirstOrDefault();
-                teste2.Cidade = "Natal BR";
+                MensagemResult message = new MensagemResult();
 
-                collect.ReplaceOne(c => c.Nome == u.Nome, teste2);
+                //teste
+                var teste = collect.Find(c => c.Email == email && c.Id != idJson).FirstOrDefault();
 
+
+                Usuario usuario = collect.Find(c => c.Id == idJson).FirstOrDefault();
+
+                if (usuario != null)
+                {
+                    if (usuario.Email != email && email != null)
+                    {
+                        bool emailValido = ValidaEmail(email);
+
+                        if (!emailValido)
+                        {
+                            message.msg = "Email inválido";
+                            message.status = StatusResponse.ERROR.ToString();
+                            message.code = 103;
+
+                            return Ok(message);
+                        }
+
+                        else if ((collect.Find(c => c.Email == email && c.Id != idJson).FirstOrDefault()) != null)
+                        {
+                            message.msg = "Este email já existe";
+                            message.status = StatusResponse.ERROR.ToString();
+                            message.code = 101;
+                            return Ok(message);
+                        }
+                        else
+                        {
+                            usuario.Email = email;
+                        }
+                    }
+
+                    //corrigir esta calida~]ap
+                    //verifica nome existente
+                    if (usuario.Nome != nome && nome != null)
+                    {
+                        if (!Regex.Match(nome.Trim(), "^[A - Z][a - zA - Z] * $").Success)
+                        {
+                            message.msg = "Nome inválido";
+                            message.status = StatusResponse.ERROR.ToString();
+                            message.code = 104;
+
+                            return Ok(message);
+                        }
+                        else if ((collect.Find(c => c.Nome == nome && c.Id != idJson).FirstOrDefault()) != null)
+                        {
+                            message.msg = "Este nome já existe";
+                            message.status = StatusResponse.ERROR.ToString();
+                            message.code = 105;
+                            return Ok(message);
+                        }
+                        else
+                        {
+                            usuario.Nome = nome;
+                        }
+                    }
+
+                    if (idade > 0 && usuario.Idade != idade) usuario.Idade = idade;
+                    if (cidade != null && usuario.Cidade != cidade) usuario.Cidade = cidade;
+                    if (senha != null && usuario.Senha != senha) usuario.Senha = senha;
+                    if (estado != null && usuario.Estado != estado) usuario.Estado = cidade;
+                    usuario.DataAlteracao = DateTime.Now;
+
+                    collect.ReplaceOne(c => c.Id == idJson, usuario);
+
+                    message.msg = "Alteração realizada com sucesso";
+                    message.status = StatusResponse.OK.ToString();
+                    message.code = 200;
+
+                    return Ok(message);
+                }
+                else
+                {
+                    message.msg = "Usuário não encontrado";
+                    message.status = StatusResponse.ERROR.ToString();
+                    message.code = 100;
+
+                    return Ok(message);
+                }
             }
             catch (Exception e)
             {
                 return InternalServerError(new Exception(e.Message));
             }
-            return Ok("");
+
+        }
+
+        public bool ValidaEmail(string email)
+        {
+            try
+            {
+                MailAddress m = new MailAddress(email);
+
+                return true;
+            }
+            catch (FormatException)
+            {
+                return false;
+            }
         }
 
 
