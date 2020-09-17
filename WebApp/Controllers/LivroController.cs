@@ -156,33 +156,29 @@ namespace WebApp.Controllers
         [HttpPut]
         [Route("atualizarDadosPessoais/{id}")]
         public IHttpActionResult AtualizaDadosPessoaisPorId(string id, string nome = null, int idade = 0,
-            string cidade = null, string email = null, string senha = null, string estado = null)
+        string cidade = null, string email = null, string senha = null, string estado = null)
         {
             try
             {
-                //teste
-                //Usuario u = new Usuario();
+                //falta arrumar datetime.Now
+
                 //u.Id = ObjectId("5f4052a8dd3db438e03b50e5");
-                //u.Nome = "Ewerton Richieri Lopes";
-                //u.Idade = 18;
-                //u.Cidade = "Atlanta Bar";
-                //u.Email = "contato.ewertonrichieri@gmail.com";
-                //u.Senha = "dGVzdGU=";
-                //u.Estado = null;
-                //u.DataRegistro = DateTime.Now;
+                MensagemResult message = new MensagemResult();
 
+                if (nome == null && idade == 0 && cidade == null && email == null && senha == null && estado == null)
+                {
+                    message.msg = "Nenhuma alteração foi realizada";
+                    message.status = StatusResponse.ERROR.ToString();
+                    message.code = 107;
 
-                var idJson = ObjectId.Parse(id);
+                    return Ok(message);
+                }
 
                 IMongoClient client = new MongoClient(conexaoMongo);
                 IMongoDatabase database = client.GetDatabase("TrocaLivro");
                 IMongoCollection<Usuario> collect = database.GetCollection<Usuario>("Usuario");
 
-                MensagemResult message = new MensagemResult();
-
-                //teste
-                var teste = collect.Find(c => c.Email == email && c.Id != idJson).FirstOrDefault();
-
+                var idJson = ObjectId.Parse(id);
 
                 Usuario usuario = collect.Find(c => c.Id == idJson).FirstOrDefault();
 
@@ -214,11 +210,10 @@ namespace WebApp.Controllers
                         }
                     }
 
-                    //corrigir esta calida~]ap
                     //verifica nome existente
                     if (usuario.Nome != nome && nome != null)
                     {
-                        if (!Regex.Match(nome.Trim(), "^[A - Z][a - zA - Z] * $").Success)
+                        if (!Regex.IsMatch(nome, @"^[a-zA-Z ]+$"))
                         {
                             message.msg = "Nome inválido";
                             message.status = StatusResponse.ERROR.ToString();
@@ -226,24 +221,18 @@ namespace WebApp.Controllers
 
                             return Ok(message);
                         }
-                        else if ((collect.Find(c => c.Nome == nome && c.Id != idJson).FirstOrDefault()) != null)
-                        {
-                            message.msg = "Este nome já existe";
-                            message.status = StatusResponse.ERROR.ToString();
-                            message.code = 105;
-                            return Ok(message);
-                        }
                         else
                         {
-                            usuario.Nome = nome;
+                            usuario.Nome = nome.Trim().Replace("  "," ");
                         }
                     }
 
                     if (idade > 0 && usuario.Idade != idade) usuario.Idade = idade;
                     if (cidade != null && usuario.Cidade != cidade) usuario.Cidade = cidade;
                     if (senha != null && usuario.Senha != senha) usuario.Senha = senha;
-                    if (estado != null && usuario.Estado != estado) usuario.Estado = cidade;
-                    usuario.DataAlteracao = DateTime.Now;
+                    if (estado != null && usuario.Estado != estado) usuario.Estado = estado;
+                    DateTime dt = DateTime.Now;
+                    usuario.DataAlteracao = dt;
 
                     collect.ReplaceOne(c => c.Id == idJson, usuario);
 
@@ -266,7 +255,6 @@ namespace WebApp.Controllers
             {
                 return InternalServerError(new Exception(e.Message));
             }
-
         }
 
         public bool ValidaEmail(string email)
@@ -283,7 +271,6 @@ namespace WebApp.Controllers
             }
         }
 
-
         public static string Base64Encode(string text)
         {
             try
@@ -296,6 +283,5 @@ namespace WebApp.Controllers
                 return e.Message;
             }
         }
-
     }
 }
