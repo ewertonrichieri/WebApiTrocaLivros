@@ -13,6 +13,7 @@ namespace WebApp.Controllers
 {
     [EnableCors("*", "*", "*")]
     [RoutePrefix("api/livros")]
+    [Authorize]
     public class LivroController : ApiController
     {
         private enum StatusResponse
