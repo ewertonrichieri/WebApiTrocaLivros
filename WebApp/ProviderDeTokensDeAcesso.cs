@@ -5,6 +5,8 @@ using System.Linq;
 using System.Web;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using WebApp.Controllers;
+using WebApp.Models;
 
 namespace WebApp
 {
@@ -17,17 +19,27 @@ namespace WebApp
 
         public override async Task GrantResourceOwnerCredentials(OAuthGrantResourceOwnerCredentialsContext context)
         {
-            if ("teste" == context.UserName && "teste" == context.Password)
+            if (context.Request.Method == "POST")
             {
-                var identity = new ClaimsIdentity(context.Options.AuthenticationType);
-                identity.AddClaim(new Claim("sub", context.UserName));
-                identity.AddClaim(new Claim("role", "user"));
+                MensagemResult auth = LivroController.AutenticarUsuario(context.UserName, context.Password);
 
-                context.Validated(identity);
+                if (auth.code == 200)
+                {
+                    var identity = new ClaimsIdentity(context.Options.AuthenticationType);
+                    identity.AddClaim(new Claim("sub", context.UserName));
+                    identity.AddClaim(new Claim("role", "user"));
+
+                    context.Validated(identity);
+                }
+                else
+                {
+                    context.SetError("acesso invalido", auth.msg);
+                    return;
+                }
             }
             else
             {
-                context.SetError("acesso invalido", "As credenciais do usuário não conferem");
+                context.SetError("Metodo Inválido");
                 return;
             }
         }

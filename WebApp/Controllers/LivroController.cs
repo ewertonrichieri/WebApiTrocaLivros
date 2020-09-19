@@ -79,44 +79,40 @@ namespace WebApp.Controllers
             }
         }
 
-        [HttpGet]
-        [Route("autenticarUsuario/{nome}/{email}/{senha}")]
-        public IHttpActionResult AuthenticarUsuario(string nome, string email, string senha)
+        //[HttpGet]
+        //[Route("autenticarUsuario/{nome}/{senha}")]
+        //public static IHttpActionResult AutenticarUsuario(string nome, string senha, string email = null)
+        public static MensagemResult AutenticarUsuario(string nome, string senha)
         {
+            MensagemResult messageError = new MensagemResult();
+
             try
             {
+                string conexaoMongo = "mongodb+srv://Livros:Livros@trocalivrostcc.nsbyt.gcp.mongodb.net/Livros?retryWrites=true&w=majority";
+
                 //falta codificar a senha em base 64 para fazer a comparação
                 var result = string.Empty;
                 IMongoClient client = new MongoClient(conexaoMongo);
                 IMongoDatabase database = client.GetDatabase("TrocaLivro");
                 List<Usuario> collect = database.GetCollection<Usuario>("Usuario").AsQueryable().ToList();
 
-                MensagemResult messageError = new MensagemResult();
 
                 if (collect.Any(user => user.Nome == nome))
                 {
-                    if (collect.Any(user => user.Nome == nome && user.Email == email))
+                    var user = collect.Find(c => c.Nome == nome && c.Senha ==senha);
+
+                    if (user != null)
                     {
-                        if (collect.Any(user => user.Nome == nome && user.Email == email && user.Senha == Base64Encode(senha)))
-                        {
-                            var user = collect.Find(c => c.Nome == nome && c.Email == email);
-                            messageError.status = StatusResponse.OK.ToString();
-                            messageError.code = 200;
-                            messageError.msg = "Usuário autenticado com sucesso";
-                            messageError.id = user.Id.ToString();
-                        }
-                        else
-                        {
-                            messageError.status = StatusResponse.ERROR.ToString();
-                            messageError.code = 406;
-                            messageError.msg = "Senha incorreta";
-                        }
+                        messageError.status = StatusResponse.OK.ToString();
+                        messageError.code = 200;
+                        messageError.msg = "Usuário autenticado com sucesso";
+                        messageError.id = user.Id.ToString();
                     }
                     else
                     {
                         messageError.status = StatusResponse.ERROR.ToString();
-                        messageError.code = 405;
-                        messageError.msg = "Email incorreto";
+                        messageError.code = 406;
+                        messageError.msg = "Senha incorreta";
                     }
                 }
                 else
@@ -126,12 +122,14 @@ namespace WebApp.Controllers
                     messageError.msg = "Usuário não encontrado";
                 }
 
-                return Ok(messageError);
+                return messageError;
+
             }
             catch (Exception e)
-            {
-                return InternalServerError(e);
+            {                
             }
+
+            return messageError;
         }
 
         [HttpGet]
@@ -224,7 +222,7 @@ namespace WebApp.Controllers
                         }
                         else
                         {
-                            usuario.Nome = nome.Trim().Replace("  "," ");
+                            usuario.Nome = nome.Trim().Replace("  ", " ");
                         }
                     }
 
