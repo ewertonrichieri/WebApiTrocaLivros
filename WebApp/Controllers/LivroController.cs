@@ -4,7 +4,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Mail;
+using System.Security.Claims;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Web;
 using System.Web.Http;
 using System.Web.Http.Cors;
 using WebApp.Models;
@@ -33,22 +36,22 @@ namespace WebApp.Controllers
                 IMongoClient client = new MongoClient(conexaoMongo);
                 IMongoDatabase database = client.GetDatabase("TrocaLivro");
                 IMongoCollection<Usuario> collect = database.GetCollection<Usuario>("Usuario");
-                MensagemResult messageError = new MensagemResult();
+                Response messageError = new Response();
 
                 if ((collect.Find(c => c.Nome == nome).FirstOrDefault()) != null)
                 {
-                    messageError.status = StatusResponse.ERROR.ToString();
-                    messageError.msg = "Nome de usuário já cadastrado";
-                    messageError.code = 409;
+                    messageError.Status = StatusResponse.ERROR.ToString();
+                    messageError.Msg = "Nome de usuário já cadastrado";
+                    messageError.Code = 409;
 
                     return Ok(messageError);
                 }
 
                 if ((collect.Find(c => c.Email == email).FirstOrDefault()) != null)
                 {
-                    messageError.status = StatusResponse.ERROR.ToString();
-                    messageError.msg = "Email já esta cadastrado";
-                    messageError.code = 412;
+                    messageError.Status = StatusResponse.ERROR.ToString();
+                    messageError.Msg = "Email já esta cadastrado";
+                    messageError.Code = 412;
 
                     return Ok(messageError);
                 }
@@ -65,9 +68,9 @@ namespace WebApp.Controllers
                 usuario.Senha = Base64Encode(senha);
                 if (string.IsNullOrEmpty(estado)) { usuario.Estado = estado; }
 
-                messageError.msg = "Usuário cadastrado com sucesso";
-                messageError.status = StatusResponse.OK.ToString();
-                messageError.code = 200;
+                messageError.Msg = "Usuário cadastrado com sucesso";
+                messageError.Status = StatusResponse.OK.ToString();
+                messageError.Code = 200;
 
                 collect.InsertOne(usuario);
 
@@ -79,59 +82,56 @@ namespace WebApp.Controllers
             }
         }
 
-        //[HttpGet]
-        //[Route("autenticarUsuario/{nome}/{senha}")]
-        //public static IHttpActionResult AutenticarUsuario(string nome, string senha, string email = null)
-        public static MensagemResult AutenticarUsuario(string nome, string senha)
+        public static Response AutenticarUsuario(string nome, string senha)
         {
-            MensagemResult messageError = new MensagemResult();
+            Response messageError = new Response();
 
             try
             {
                 string conexaoMongo = "mongodb+srv://Livros:Livros@trocalivrostcc.nsbyt.gcp.mongodb.net/Livros?retryWrites=true&w=majority";
 
-                //falta codificar a senha em base 64 para fazer a comparação
                 var result = string.Empty;
                 IMongoClient client = new MongoClient(conexaoMongo);
                 IMongoDatabase database = client.GetDatabase("TrocaLivro");
                 List<Usuario> collect = database.GetCollection<Usuario>("Usuario").AsQueryable().ToList();
 
-
                 if (collect.Any(user => user.Nome == nome))
                 {
-                    var user = collect.Find(c => c.Nome == nome && c.Senha ==senha);
+                    var user = collect.Find(c => c.Nome == nome && c.Senha == Base64Encode(senha));
 
                     if (user != null)
                     {
-                        messageError.status = StatusResponse.OK.ToString();
-                        messageError.code = 200;
-                        messageError.msg = "Usuário autenticado com sucesso";
-                        messageError.id = user.Id.ToString();
+                        messageError.Status = StatusResponse.OK.ToString();
+                        messageError.Code = 200;
+                        messageError.Msg = "Usuário autenticado com sucesso";
+                        messageError.ID= user.Id.ToString();
+                        messageError.TypeAccount = user.TypeAccount != null ? user.TypeAccount : "User";
                     }
                     else
                     {
-                        messageError.status = StatusResponse.ERROR.ToString();
-                        messageError.code = 406;
-                        messageError.msg = "Senha incorreta";
+                        messageError.Status = StatusResponse.ERROR.ToString();
+                        messageError.Code = 406;
+                        messageError.Msg = "Usuário ou Senha inválida";
                     }
                 }
                 else
                 {
-                    messageError.status = StatusResponse.ERROR.ToString();
-                    messageError.code = 407;
-                    messageError.msg = "Usuário não encontrado";
+                    messageError.Status = StatusResponse.ERROR.ToString();
+                    messageError.Code = 407;
+                    messageError.Msg = "Usuário não encontrado";
                 }
 
                 return messageError;
 
             }
             catch (Exception e)
-            {                
+            {
             }
 
             return messageError;
         }
 
+        [Authorize(Roles = "Administrador")]
         [HttpGet]
         [Route("listarUsuarios")]
         public IHttpActionResult GetLista()
@@ -162,13 +162,13 @@ namespace WebApp.Controllers
                 //falta arrumar datetime.Now
 
                 //u.Id = ObjectId("5f4052a8dd3db438e03b50e5");
-                MensagemResult message = new MensagemResult();
+                Response message = new Response();
 
                 if (nome == null && idade == 0 && cidade == null && email == null && senha == null && estado == null)
                 {
-                    message.msg = "Nenhuma alteração foi realizada";
-                    message.status = StatusResponse.ERROR.ToString();
-                    message.code = 107;
+                    message.Msg = "Nenhuma alteração foi realizada";
+                    message.Status = StatusResponse.ERROR.ToString();
+                    message.Code = 107;
 
                     return Ok(message);
                 }
@@ -189,18 +189,18 @@ namespace WebApp.Controllers
 
                         if (!emailValido)
                         {
-                            message.msg = "Email inválido";
-                            message.status = StatusResponse.ERROR.ToString();
-                            message.code = 103;
+                            message.Msg = "Email inválido";
+                            message.Status = StatusResponse.ERROR.ToString();
+                            message.Code = 103;
 
                             return Ok(message);
                         }
 
                         else if ((collect.Find(c => c.Email == email && c.Id != idJson).FirstOrDefault()) != null)
                         {
-                            message.msg = "Este email já existe";
-                            message.status = StatusResponse.ERROR.ToString();
-                            message.code = 101;
+                            message.Msg = "Este email já existe";
+                            message.Status = StatusResponse.ERROR.ToString();
+                            message.Code = 101;
                             return Ok(message);
                         }
                         else
@@ -214,9 +214,9 @@ namespace WebApp.Controllers
                     {
                         if (!Regex.IsMatch(nome, @"^[a-zA-Z ]+$"))
                         {
-                            message.msg = "Nome inválido";
-                            message.status = StatusResponse.ERROR.ToString();
-                            message.code = 104;
+                            message.Msg = "Nome inválido";
+                            message.Status = StatusResponse.ERROR.ToString();
+                            message.Code = 104;
 
                             return Ok(message);
                         }
@@ -235,17 +235,17 @@ namespace WebApp.Controllers
 
                     collect.ReplaceOne(c => c.Id == idJson, usuario);
 
-                    message.msg = "Alteração realizada com sucesso";
-                    message.status = StatusResponse.OK.ToString();
-                    message.code = 200;
+                    message.Msg = "Alteração realizada com sucesso";
+                    message.Status = StatusResponse.OK.ToString();
+                    message.Code = 200;
 
                     return Ok(message);
                 }
                 else
                 {
-                    message.msg = "Usuário não encontrado";
-                    message.status = StatusResponse.ERROR.ToString();
-                    message.code = 100;
+                    message.Msg = "Usuário não encontrado";
+                    message.Status = StatusResponse.ERROR.ToString();
+                    message.Code = 100;
 
                     return Ok(message);
                 }

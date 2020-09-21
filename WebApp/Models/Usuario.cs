@@ -32,6 +32,8 @@ namespace WebApp.Models
         [Display(Name = "Estado")]
         public string Estado { get; set; }
 
+        public string TypeAccount { get; set; }
+
         [Display(Name = "DataRegistro")]
         public DateTime DataRegistro { get; set; }
 

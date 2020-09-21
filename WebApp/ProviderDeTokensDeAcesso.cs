@@ -19,27 +19,28 @@ namespace WebApp
 
         public override async Task GrantResourceOwnerCredentials(OAuthGrantResourceOwnerCredentialsContext context)
         {
-            if (context.Request.Method == "POST")
+            if (context.Request.Method == "POST" && context.UserName != null && context.Password != null)
             {
-                MensagemResult auth = LivroController.AutenticarUsuario(context.UserName, context.Password);
+                Response auth = LivroController.AutenticarUsuario(context.UserName, context.Password);
 
-                if (auth.code == 200)
+                if (auth.Code == 200)
                 {
                     var identity = new ClaimsIdentity(context.Options.AuthenticationType);
                     identity.AddClaim(new Claim("sub", context.UserName));
-                    identity.AddClaim(new Claim("role", "user"));
-
+                    identity.AddClaim(new Claim(ClaimTypes.Role, auth.TypeAccount));
+                    //identity.AddClaim(new Claim("role", "user"));
+                    
                     context.Validated(identity);
                 }
                 else
                 {
-                    context.SetError("acesso invalido", auth.msg);
+                    context.SetError("acesso invalido", auth.Msg);
                     return;
                 }
             }
             else
             {
-                context.SetError("Metodo Inválido");
+                context.SetError("Operação Inválida");
                 return;
             }
         }
