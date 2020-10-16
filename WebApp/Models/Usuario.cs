@@ -39,5 +39,8 @@ namespace WebApp.Models
 
         [Display(Name = "DataAlteracao")]
         public DateTime DataAlteracao { get; set; }
+
+        [Display(Name = "DataDesbloqueioConta")]
+        public string DataDesbloqueioConta { get; set; }
     }
 }

@@ -3,6 +3,7 @@ using MongoDB.Driver;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Mail;
 using System.Security.Claims;
 using System.Text.RegularExpressions;
@@ -101,11 +102,39 @@ namespace WebApp.Controllers
 
                     if (user != null)
                     {
-                        messageError.Status = StatusResponse.OK.ToString();
-                        messageError.Code = 200;
-                        messageError.Msg = "Usuário autenticado com sucesso";
-                        messageError.ID= user.Id.ToString();
-                        messageError.TypeAccount = user.TypeAccount != null ? user.TypeAccount : "User";
+                        //Se for bloqueada por alguma denuncia
+                        bool resultadoContaBloqueada = true;
+
+                        if (!String.IsNullOrEmpty(user.DataDesbloqueioConta))
+                        {
+                            DateTime dataAtual = DateTime.Now.Date;
+                            try
+                            {
+                                DateTime dataContaAcessoLiberada = DateTime.Parse(user.DataDesbloqueioConta);
+                                resultadoContaBloqueada = DateTime.Compare(dataContaAcessoLiberada, dataAtual) == 1 ? false : true;
+                            }
+                            catch (Exception e)
+                            {
+                                messageError.Msg = "Data de bloqueio esta no formato incorreto, favor corrigir";
+                                return messageError;
+                            }
+                        }
+
+                        if (!resultadoContaBloqueada)
+                        {
+                            messageError.Status = StatusResponse.ERROR.ToString();
+                            messageError.Code = 405;
+                            messageError.Msg = "Conta bloqueada até a data " + user.DataDesbloqueioConta;
+                        }
+                        else
+                        {
+                            messageError.Status = StatusResponse.OK.ToString();
+                            messageError.Code = 200;
+                            messageError.Msg = "Usuário autenticado com sucesso";
+                            messageError.ID = user.Id.ToString();
+                            messageError.email = user.Email;
+                            messageError.TypeAccount = user.TypeAccount != null ? user.TypeAccount : "User";
+                        }
                     }
                     else
                     {
@@ -118,7 +147,7 @@ namespace WebApp.Controllers
                 {
                     messageError.Status = StatusResponse.ERROR.ToString();
                     messageError.Code = 407;
-                    messageError.Msg = "Usuário não encontrado";
+                    messageError.Msg = "Usuário ou Senha inválida";
                 }
 
                 return messageError;
@@ -126,6 +155,7 @@ namespace WebApp.Controllers
             }
             catch (Exception e)
             {
+                messageError.Msg = e.Message;
             }
 
             return messageError;
@@ -249,6 +279,45 @@ namespace WebApp.Controllers
 
                     return Ok(message);
                 }
+            }
+            catch (Exception e)
+            {
+                return InternalServerError(new Exception(e.Message));
+            }
+        }
+
+        [HttpPost]
+        [Route("EnviarEmailDenuncia/{mensagem}/emailUser/")]
+        public IHttpActionResult PostEnviarEmailDenuncia(string mensagem, string emailUser = "")
+        {
+            try
+            {
+                string emailBook = "bookstationapp@gmail.com";
+
+                if (string.IsNullOrEmpty(emailUser))
+                {
+                    if (System.Security.Claims.ClaimsPrincipal.Current.FindFirst(ClaimTypes.Email).Value != null)
+                        emailUser = System.Security.Claims.ClaimsPrincipal.Current.FindFirst(ClaimTypes.Email).Value;
+
+                    else emailUser = "Anonimo";
+                }
+
+                MailMessage message = new MailMessage();
+                SmtpClient smtp = new SmtpClient();
+                message.From = new MailAddress(emailBook);
+                message.To.Add(new MailAddress(emailBook));
+                message.Subject = "Denuncias Cult Network";
+                message.IsBodyHtml = true;
+                message.Body = mensagem + " ENVIADO POR: " + emailUser;
+                smtp.Port = 587;
+                smtp.Host = "smtp.gmail.com";
+                smtp.EnableSsl = true;
+                smtp.UseDefaultCredentials = false;
+                smtp.Credentials = new NetworkCredential(emailBook, "tcclivros");
+                smtp.DeliveryMethod = SmtpDeliveryMethod.Network;
+                smtp.Send(message);
+
+                return Ok("enviado");
             }
             catch (Exception e)
             {

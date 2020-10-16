@@ -14,6 +14,7 @@ namespace WebApp.Models
         public string Msg { get; set; }
         public string Status { get; set; }
         public int Code { get; set; }
+        public string email { get; set; }
 
     }
 }
