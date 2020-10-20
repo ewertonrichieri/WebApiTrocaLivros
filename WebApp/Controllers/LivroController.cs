@@ -110,12 +110,12 @@ namespace WebApp.Controllers
                             DateTime dataAtual = DateTime.Now.Date;
                             try
                             {
-                                DateTime dataContaAcessoLiberada = DateTime.Parse(user.DataDesbloqueioConta);
+                                DateTime dataContaAcessoLiberada = DateTime.ParseExact(user.DataDesbloqueioConta, "dd/MM/yyyy", null);
                                 resultadoContaBloqueada = DateTime.Compare(dataContaAcessoLiberada, dataAtual) == 1 ? false : true;
                             }
                             catch (Exception e)
                             {
-                                messageError.Msg = "Data de bloqueio esta no formato incorreto, favor corrigir";
+                                messageError.Msg = "Data de bloqueio '"+ user.DataDesbloqueioConta +"' esta no formato incorreto, favor corrigir";
                                 return messageError;
                             }
                         }
