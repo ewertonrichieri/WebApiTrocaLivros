@@ -30,6 +30,7 @@ namespace WebApp
                     identity.AddClaim(new Claim(ClaimTypes.Role, auth.TypeAccount));
 
                     identity.AddClaim(new Claim(ClaimTypes.Email, auth.email));
+                    identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, auth.ID));
                     //identity.AddClaim(new Claim("role", "user"));
                     
                     context.Validated(identity);

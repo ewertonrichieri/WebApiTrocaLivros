@@ -1,5 +1,6 @@
 ﻿using MongoDB.Bson;
 using MongoDB.Driver;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,8 +8,6 @@ using System.Net;
 using System.Net.Mail;
 using System.Security.Claims;
 using System.Text.RegularExpressions;
-using System.Threading;
-using System.Web;
 using System.Web.Http;
 using System.Web.Http.Cors;
 using WebApp.Models;
@@ -17,7 +16,6 @@ namespace WebApp.Controllers
 {
     [EnableCors("*", "*", "*")]
     [RoutePrefix("api/livros")]
-    [Authorize]
     public class LivroController : ApiController
     {
         private enum StatusResponse
@@ -29,17 +27,76 @@ namespace WebApp.Controllers
         string conexaoMongo = "mongodb+srv://Livros:Livros@trocalivrostcc.nsbyt.gcp.mongodb.net/Livros?retryWrites=true&w=majority";
 
         [HttpPost]
-        [Route("criarUsuario/{nome}/{idade:int}/{cidade}/{email}/{senha}/{estado=null}")]
-        public IHttpActionResult CadastrarUsuario(string nome, int idade, string cidade, string email, string senha, string estado = null)
+        [Route("criarUsuario")]
+        public IHttpActionResult CadastrarUsuario(Usuario userExterno)
         {
             try
             {
+                ResponseMessage messageError = new ResponseMessage();
+
+                if (userExterno == null)
+                {
+                    messageError.Code = 100;
+                    messageError.Msg = "Campos {Nome, Idade, Cidade, Email, Senha e Estado} são obrigatórios";
+                    messageError.Status = StatusResponse.ERROR.ToString();
+
+                    return Ok(messageError);
+                }
+
+                if ((String.IsNullOrEmpty(userExterno.Nome)) || (userExterno.Idade == 0) || (String.IsNullOrEmpty(userExterno.Cidade))
+                   || (String.IsNullOrEmpty(userExterno.Email)) || (String.IsNullOrEmpty(userExterno.Senha)) || (String.IsNullOrEmpty(userExterno.Estado)))
+                {
+                    messageError.Code = 100;
+                    messageError.Msg = "Campos {Nome, Idade, Cidade, Email, Senha e Estado} são obrigatórios";
+                    messageError.Status = StatusResponse.ERROR.ToString();
+
+                    return Ok(messageError);
+                }
+
+                if (String.IsNullOrEmpty(userExterno.Estado) || userExterno.Estado.Length > 2)
+                {
+                    messageError.Code = 101;
+                    messageError.Msg = "Campo 'Estado' só pode ter 2 caracteres";
+                    messageError.Status = StatusResponse.ERROR.ToString();
+
+                    return Ok(messageError);
+                }
+
+                if (!ValidaEmail(userExterno.Email))
+                {
+                    messageError.Code = 102;
+                    messageError.Msg = "Email inválido";
+                    messageError.Status = StatusResponse.ERROR.ToString();
+
+                    return Ok(messageError);
+                }
+
+
+                if (!ValidaNomeCidadeUsuario(userExterno.Nome))
+                {
+                    messageError.Code = 103;
+                    messageError.Msg = "Parâmetro 'Nome' inválido";
+                    messageError.Status = StatusResponse.ERROR.ToString();
+
+                    return Ok(messageError);
+                }
+
+                if (!ValidaNomeCidadeUsuario(userExterno.Cidade))
+                {
+                    messageError.Code = 105;
+                    messageError.Msg = "Parâmetro 'Cidade' inválido";
+                    messageError.Status = StatusResponse.ERROR.ToString();
+
+                    return Ok(messageError);
+                }
+
+                userExterno.Nome = userExterno.Nome.Contains("  ") ? RetiraEspacoBrancoDesnecessario(userExterno.Nome) : userExterno.Nome.Trim();
+
                 IMongoClient client = new MongoClient(conexaoMongo);
                 IMongoDatabase database = client.GetDatabase("TrocaLivro");
                 IMongoCollection<Usuario> collect = database.GetCollection<Usuario>("Usuario");
-                Response messageError = new Response();
 
-                if ((collect.Find(c => c.Nome == nome).FirstOrDefault()) != null)
+                if ((collect.Find(c => c.Nome == userExterno.Nome).FirstOrDefault()) != null)
                 {
                     messageError.Status = StatusResponse.ERROR.ToString();
                     messageError.Msg = "Nome de usuário já cadastrado";
@@ -48,7 +105,7 @@ namespace WebApp.Controllers
                     return Ok(messageError);
                 }
 
-                if ((collect.Find(c => c.Email == email).FirstOrDefault()) != null)
+                if ((collect.Find(c => c.Email == userExterno.Email).FirstOrDefault()) != null)
                 {
                     messageError.Status = StatusResponse.ERROR.ToString();
                     messageError.Msg = "Email já esta cadastrado";
@@ -57,23 +114,25 @@ namespace WebApp.Controllers
                     return Ok(messageError);
                 }
 
-                Usuario usuario = new Usuario();
+                Usuario user = new Usuario();
 
-                usuario.Nome = nome;
-                usuario.Idade = idade;
-                usuario.Cidade = cidade;
-                usuario.Email = email;
-                usuario.Estado = estado;
-                usuario.DataRegistro = DateTime.Now;
-                usuario.DataAlteracao = DateTime.Now;
-                usuario.Senha = Base64Encode(senha);
-                if (string.IsNullOrEmpty(estado)) { usuario.Estado = estado; }
+                user.Nome = userExterno.Nome;
+                user.Idade = userExterno.Idade;
+                user.Cidade = userExterno.Cidade;
+                user.Email = userExterno.Email;
+                user.Estado = userExterno.Estado;
+                user.DataRegistro = DateTime.Now;
+                user.DataAlteracao = DateTime.Now;
+                user.Senha = Base64Encode(userExterno.Senha);
+                if (!string.IsNullOrEmpty(userExterno.Estado)) { user.Estado = userExterno.Estado; }
+                if (!string.IsNullOrEmpty(userExterno.Latitude)) { user.Latitude = userExterno.Latitude; }
+                if (!string.IsNullOrEmpty(userExterno.Longitude)) { user.Longitude = userExterno.Longitude; }
 
                 messageError.Msg = "Usuário cadastrado com sucesso";
                 messageError.Status = StatusResponse.OK.ToString();
                 messageError.Code = 200;
 
-                collect.InsertOne(usuario);
+                collect.InsertOne(user);
 
                 return Ok(messageError);
             }
@@ -83,10 +142,10 @@ namespace WebApp.Controllers
             }
         }
 
+        [Authorize]
         public static Response AutenticarUsuario(string nome, string senha)
         {
             Response messageError = new Response();
-
             try
             {
                 string conexaoMongo = "mongodb+srv://Livros:Livros@trocalivrostcc.nsbyt.gcp.mongodb.net/Livros?retryWrites=true&w=majority";
@@ -115,7 +174,7 @@ namespace WebApp.Controllers
                             }
                             catch (Exception e)
                             {
-                                messageError.Msg = "Data de bloqueio '"+ user.DataDesbloqueioConta +"' esta no formato incorreto, favor corrigir";
+                                messageError.Msg = "Data de bloqueio '" + user.DataDesbloqueioConta + "' esta no formato incorreto, favor corrigir";
                                 return messageError;
                             }
                         }
@@ -182,102 +241,159 @@ namespace WebApp.Controllers
             }
         }
 
+        [Authorize]
         [HttpPut]
-        [Route("atualizarDadosPessoais/{id}")]
-        public IHttpActionResult AtualizaDadosPessoaisPorId(string id, string nome = null, int idade = 0,
-        string cidade = null, string email = null, string senha = null, string estado = null)
+        [Route("atualizarDadosPessoais")]
+        public IHttpActionResult AtualizaDadosPessoaisPorId(Usuario userExterno)
         {
             try
             {
-                //falta arrumar datetime.Now
-
                 //u.Id = ObjectId("5f4052a8dd3db438e03b50e5");
-                Response message = new Response();
+                ResponseMessage messageError = new ResponseMessage();
 
-                if (nome == null && idade == 0 && cidade == null && email == null && senha == null && estado == null)
+                if (userExterno == null)
                 {
-                    message.Msg = "Nenhuma alteração foi realizada";
-                    message.Status = StatusResponse.ERROR.ToString();
-                    message.Code = 107;
+                    messageError.Msg = "Nenhuma alteração foi realizada";
+                    messageError.Status = StatusResponse.ERROR.ToString();
+                    messageError.Code = 107;
 
-                    return Ok(message);
+                    return Ok(messageError);
                 }
+
+                if (String.IsNullOrEmpty(userExterno.Nome) && userExterno.Idade == 0 && String.IsNullOrEmpty(userExterno.Cidade)
+                    && String.IsNullOrEmpty(userExterno.Email) && String.IsNullOrEmpty(userExterno.Senha) && String.IsNullOrEmpty(userExterno.Estado))
+                {
+                    messageError.Msg = "Nenhuma alteração foi realizada";
+                    messageError.Status = StatusResponse.ERROR.ToString();
+                    messageError.Code = 107;
+
+                    return Ok(messageError);
+                }
+
+                if (userExterno.Estado.Length > 2)
+                {
+                    messageError.Code = 101;
+                    messageError.Msg = "Campo 'Estado' só pode ter 2 caracteres";
+                    messageError.Status = StatusResponse.ERROR.ToString();
+
+                    return Ok(messageError);
+                }
+
+                if (!ValidaEmail(userExterno.Email))
+                {
+                    messageError.Code = 102;
+                    messageError.Msg = "Email inválido";
+                    messageError.Status = StatusResponse.ERROR.ToString();
+
+                    return Ok(messageError);
+                }
+
+                if (!ValidaNomeCidadeUsuario(userExterno.Nome))
+                {
+                    messageError.Code = 103;
+                    messageError.Msg = "Parâmetro 'Nome' inválido";
+                    messageError.Status = StatusResponse.ERROR.ToString();
+
+                    return Ok(messageError);
+                }
+
+                if (!ValidaNomeCidadeUsuario(userExterno.Cidade))
+                {
+                    messageError.Code = 105;
+                    messageError.Msg = "Parâmetro 'Cidade' inválido";
+                    messageError.Status = StatusResponse.ERROR.ToString();
+
+                    return Ok(messageError);
+                }
+
+                //valida o nome se tem espaços desnecessario
+                userExterno.Nome = userExterno.Nome.Contains("  ") ? RetiraEspacoBrancoDesnecessario(userExterno.Nome) : userExterno.Nome.Trim();
 
                 IMongoClient client = new MongoClient(conexaoMongo);
                 IMongoDatabase database = client.GetDatabase("TrocaLivro");
                 IMongoCollection<Usuario> collect = database.GetCollection<Usuario>("Usuario");
 
-                var idJson = ObjectId.Parse(id);
+                string idUser = string.Empty;
+
+                if (System.Security.Claims.ClaimsPrincipal.Current.FindFirst(ClaimTypes.NameIdentifier).Value != null)
+                {
+                    idUser = System.Security.Claims.ClaimsPrincipal.Current.FindFirst(ClaimTypes.NameIdentifier).Value;
+                }
+
+                var idJson = ObjectId.Parse(idUser);
 
                 Usuario usuario = collect.Find(c => c.Id == idJson).FirstOrDefault();
 
                 if (usuario != null)
                 {
-                    if (usuario.Email != email && email != null)
+                    if (usuario.Email != userExterno.Email && userExterno.Email != null)
                     {
-                        bool emailValido = ValidaEmail(email);
+                        bool emailValido = ValidaEmail(userExterno.Email);
 
                         if (!emailValido)
                         {
-                            message.Msg = "Email inválido";
-                            message.Status = StatusResponse.ERROR.ToString();
-                            message.Code = 103;
+                            messageError.Msg = "Email inválido";
+                            messageError.Status = StatusResponse.ERROR.ToString();
+                            messageError.Code = 106;
 
-                            return Ok(message);
+                            return Ok(messageError);
                         }
 
-                        else if ((collect.Find(c => c.Email == email && c.Id != idJson).FirstOrDefault()) != null)
+                        else if ((collect.Find(c => c.Email == userExterno.Email && c.Id != idJson).FirstOrDefault()) != null)
                         {
-                            message.Msg = "Este email já existe";
-                            message.Status = StatusResponse.ERROR.ToString();
-                            message.Code = 101;
-                            return Ok(message);
+                            messageError.Msg = "Este email já existe";
+                            messageError.Status = StatusResponse.ERROR.ToString();
+                            messageError.Code = 108;
+                            return Ok(messageError);
                         }
                         else
                         {
-                            usuario.Email = email;
+                            usuario.Email = userExterno.Email;
                         }
                     }
 
                     //verifica nome existente
-                    if (usuario.Nome != nome && nome != null)
+                    if (usuario.Nome != userExterno.Nome && (!String.IsNullOrEmpty(userExterno.Nome)))
                     {
-                        if (!Regex.IsMatch(nome, @"^[a-zA-Z ]+$"))
+                        if (!ValidaNomeCidadeUsuario(userExterno.Nome))
                         {
-                            message.Msg = "Nome inválido";
-                            message.Status = StatusResponse.ERROR.ToString();
-                            message.Code = 104;
+                            messageError.Msg = "Parâmetro 'Nome' Inválido";
+                            messageError.Status = StatusResponse.ERROR.ToString();
+                            messageError.Code = 110;
 
-                            return Ok(message);
+                            return Ok(messageError);
                         }
                         else
                         {
-                            usuario.Nome = nome.Trim().Replace("  ", " ");
+                            usuario.Nome = userExterno.Nome;
                         }
                     }
 
-                    if (idade > 0 && usuario.Idade != idade) usuario.Idade = idade;
-                    if (cidade != null && usuario.Cidade != cidade) usuario.Cidade = cidade;
-                    if (senha != null && usuario.Senha != senha) usuario.Senha = senha;
-                    if (estado != null && usuario.Estado != estado) usuario.Estado = estado;
+                    if (userExterno.Idade > 0 && usuario.Idade != userExterno.Idade) usuario.Idade = userExterno.Idade;
+                    if (userExterno.Cidade != null && usuario.Cidade != userExterno.Cidade) usuario.Cidade = userExterno.Cidade;
+                    if (userExterno.Senha != null && usuario.Senha != userExterno.Senha) usuario.Senha = userExterno.Senha;
+                    if (userExterno.Estado != null && usuario.Estado != userExterno.Estado) usuario.Estado = userExterno.Estado;
+
+                    if ((!String.IsNullOrEmpty(userExterno.Latitude)) && usuario.Latitude != userExterno.Latitude) usuario.Latitude = userExterno.Latitude;
+                    if ((!String.IsNullOrEmpty(userExterno.Longitude)) && usuario.Longitude != userExterno.Longitude) usuario.Longitude = userExterno.Longitude;
                     DateTime dt = DateTime.Now;
                     usuario.DataAlteracao = dt;
 
                     collect.ReplaceOne(c => c.Id == idJson, usuario);
 
-                    message.Msg = "Alteração realizada com sucesso";
-                    message.Status = StatusResponse.OK.ToString();
-                    message.Code = 200;
+                    messageError.Msg = "Alteração realizada com sucesso";
+                    messageError.Status = StatusResponse.OK.ToString();
+                    messageError.Code = 200;
 
-                    return Ok(message);
+                    return Ok(messageError);
                 }
                 else
                 {
-                    message.Msg = "Usuário não encontrado";
-                    message.Status = StatusResponse.ERROR.ToString();
-                    message.Code = 100;
+                    messageError.Msg = "Usuário não encontrado";
+                    messageError.Status = StatusResponse.ERROR.ToString();
+                    messageError.Code = 115;
 
-                    return Ok(message);
+                    return Ok(messageError);
                 }
             }
             catch (Exception e)
@@ -286,13 +402,39 @@ namespace WebApp.Controllers
             }
         }
 
+        [Authorize]
         [HttpPost]
-        [Route("EnviarEmailDenuncia/{mensagem}/emailUser/")]
-        public IHttpActionResult PostEnviarEmailDenuncia(string mensagem, string emailUser = "")
+        [Route("EnviarEmailDenuncia")]
+        public IHttpActionResult PostEnviarEmailDenuncia(JObject jsonData)
         {
             try
             {
                 string emailBook = "bookstationapp@gmail.com";
+
+                dynamic json = jsonData;
+
+                ResponseMessage response = new ResponseMessage();
+
+                if (jsonData == null)
+                {
+                    response.Code = 100;
+                    response.Status = StatusResponse.ERROR.ToString();
+                    response.Msg = "Campo 'mensagem' obrigatório";
+
+                    return Ok(response);
+                }
+
+                string mensagemUser = Convert.ToString(json.mensagem);
+                string emailUser = Convert.ToString(json.emailUser);
+
+                if (String.IsNullOrEmpty(mensagemUser))
+                {
+                    response.Code = 100;
+                    response.Status = StatusResponse.ERROR.ToString();
+                    response.Msg = "Campo 'mensagem' obrigatório";
+
+                    return Ok(response);
+                }
 
                 if (string.IsNullOrEmpty(emailUser))
                 {
@@ -302,13 +444,25 @@ namespace WebApp.Controllers
                     else emailUser = "Anonimo";
                 }
 
+                else
+                {
+                    if (!ValidaEmail(emailUser))
+                    {
+                        response.Code = 101;
+                        response.Status = StatusResponse.ERROR.ToString();
+                        response.Msg = "Campo 'Email' inválido";
+
+                        return Ok(response);
+                    }
+                }
+
                 MailMessage message = new MailMessage();
                 SmtpClient smtp = new SmtpClient();
                 message.From = new MailAddress(emailBook);
                 message.To.Add(new MailAddress(emailBook));
                 message.Subject = "Denuncias Cult Network";
                 message.IsBodyHtml = true;
-                message.Body = mensagem + " ENVIADO POR: " + emailUser;
+                message.Body = mensagemUser + " ENVIADO POR: " + emailUser;
                 smtp.Port = 587;
                 smtp.Host = "smtp.gmail.com";
                 smtp.EnableSsl = true;
@@ -317,7 +471,7 @@ namespace WebApp.Controllers
                 smtp.DeliveryMethod = SmtpDeliveryMethod.Network;
                 smtp.Send(message);
 
-                return Ok("enviado");
+                return Ok("Email enviado com suceso");
             }
             catch (Exception e)
             {
@@ -337,6 +491,39 @@ namespace WebApp.Controllers
             {
                 return false;
             }
+        }
+
+        public bool ValidaNomeCidadeUsuario(string nome)
+        {
+            try
+            {
+                if (Regex.IsMatch(nome, @"[^A-Za-z0-9\ ãéç]"))
+                {   //nome invalido
+                    return false;
+                }
+                else
+                {
+                    return true;
+                }
+            }
+            catch (Exception e)
+            {
+                return false;
+            }
+        }
+
+        public string RetiraEspacoBrancoDesnecessario(string nome)
+        {
+            //retira espaços desnecessario
+            string nomeComEspacoDesnecessario = nome.Trim();
+
+            while (nomeComEspacoDesnecessario.Contains("  "))
+            {
+                nomeComEspacoDesnecessario = nomeComEspacoDesnecessario.Replace("  ", " ");
+            }
+
+            return nome = nomeComEspacoDesnecessario;
+
         }
 
         public static string Base64Encode(string text)

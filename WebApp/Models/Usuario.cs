@@ -34,6 +34,12 @@ namespace WebApp.Models
 
         public string TypeAccount { get; set; }
 
+        [Display(Name = "Latitude")]
+        public string Latitude { get; set; }
+
+        [Display(Name = "Longitude")]
+        public string Longitude { get; set; }
+
         [Display(Name = "DataRegistro")]
         public DateTime DataRegistro { get; set; }
 
