@@ -15,7 +15,7 @@ using WebApp.Models;
 namespace WebApp.Controllers
 {
     [EnableCors("*", "*", "*")]
-    [RoutePrefix("api/livros")]
+    [RoutePrefix("api/cn")]
     public class LivroController : ApiController
     {
         private enum StatusResponse
@@ -28,7 +28,7 @@ namespace WebApp.Controllers
 
         [HttpPost]
         [Route("criarUsuario")]
-        public IHttpActionResult CadastrarUsuario(Usuario userExterno)
+        public IHttpActionResult CriarUsuario(Usuario userExterno)
         {
             try
             {
@@ -223,7 +223,7 @@ namespace WebApp.Controllers
         [Authorize(Roles = "Administrador")]
         [HttpGet]
         [Route("listarUsuarios")]
-        public IHttpActionResult GetLista()
+        public IHttpActionResult GetListaUsuarios()
         {
             try
             {
@@ -244,7 +244,7 @@ namespace WebApp.Controllers
         [Authorize]
         [HttpPut]
         [Route("atualizarDadosPessoais")]
-        public IHttpActionResult AtualizaDadosPessoaisPorId(Usuario userExterno)
+        public IHttpActionResult AtualizaDadosPessoais(Usuario userExterno)
         {
             try
             {
@@ -404,7 +404,7 @@ namespace WebApp.Controllers
 
         [Authorize]
         [HttpPost]
-        [Route("EnviarEmailDenuncia")]
+        [Route("enviarEmailDenuncia")]
         public IHttpActionResult PostEnviarEmailDenuncia(JObject jsonData)
         {
             try

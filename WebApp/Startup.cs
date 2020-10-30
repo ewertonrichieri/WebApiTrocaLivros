@@ -33,7 +33,7 @@ namespace WebApp
             var opcoesConfiguracaoToken = new OAuthAuthorizationServerOptions()
             {
                 AllowInsecureHttp = true,
-                TokenEndpointPath = new PathString("/tokenApiLivro"),
+                TokenEndpointPath = new PathString("/api/cn/access/login"),
                 AccessTokenExpireTimeSpan = TimeSpan.FromHours(1),
                 Provider = new ProviderDeTokensDeAcesso()
             };
