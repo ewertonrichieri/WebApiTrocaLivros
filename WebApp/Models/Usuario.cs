@@ -1,6 +1,7 @@
 ﻿using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace WebApp.Models
@@ -29,23 +30,31 @@ namespace WebApp.Models
         [Display(Name = "Senha")]
         public string Senha { get; set; }
 
+        [BsonIgnoreIfNull]
         [Display(Name = "Estado")]
         public string Estado { get; set; }
 
         public string TypeAccount { get; set; }
 
+        [BsonIgnoreIfNull]
         [Display(Name = "Latitude")]
         public string Latitude { get; set; }
 
+        [BsonIgnoreIfNull]
         [Display(Name = "Longitude")]
         public string Longitude { get; set; }
+
+        [Display(Name = "Endereco")]
+        public string Endereco { get; set; }
 
         [Display(Name = "DataRegistro")]
         public DateTime DataRegistro { get; set; }
 
+        [BsonIgnoreIfNull]
         [Display(Name = "DataAlteracao")]
         public DateTime DataAlteracao { get; set; }
 
+        [BsonIgnoreIfNull]
         [Display(Name = "DataDesbloqueioConta")]
         public string DataDesbloqueioConta { get; set; }
     }

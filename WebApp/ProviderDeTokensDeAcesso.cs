@@ -21,7 +21,7 @@ namespace WebApp
         {
             if (context.Request.Method == "POST" && context.UserName != null && context.Password != null)
             {
-                Response auth = LivroController.AutenticarUsuario(context.UserName, context.Password);
+                Response auth = UsuarioController.AutenticarUsuario(context.UserName, context.Password);
 
                 if (auth.Code == 200)
                 {
@@ -29,8 +29,10 @@ namespace WebApp
                     identity.AddClaim(new Claim("sub", context.UserName));
                     identity.AddClaim(new Claim(ClaimTypes.Role, auth.TypeAccount));
 
-                    identity.AddClaim(new Claim(ClaimTypes.Email, auth.email));
+                    identity.AddClaim(new Claim(ClaimTypes.Email, auth.Email));
                     identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, auth.ID));
+                    identity.AddClaim(new Claim(ClaimTypes.StreetAddress, auth.Endereco));
+                    identity.AddClaim(new Claim(ClaimTypes.Locality, auth.LatitudeLongitude));
                     //identity.AddClaim(new Claim("role", "user"));
                     
                     context.Validated(identity);

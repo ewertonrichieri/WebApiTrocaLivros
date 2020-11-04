@@ -14,7 +14,11 @@ namespace WebApp
     {
         public void Configuration(IAppBuilder app)
         {
-            var config = new HttpConfiguration();
+            //var config = new HttpConfiguration();
+            var config = new HttpConfiguration
+            {
+                IncludeErrorDetailPolicy = IncludeErrorDetailPolicy.Always // Add this line to enable detail mode in release
+            };
 
             config.MapHttpAttributeRoutes();
             config.Routes.MapHttpRoute(
