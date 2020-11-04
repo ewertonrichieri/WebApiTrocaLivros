@@ -14,7 +14,11 @@ namespace WebApp
     {
         public void Configuration(IAppBuilder app)
         {
-            var config = new HttpConfiguration();
+            //var config = new HttpConfiguration();
+            var config = new HttpConfiguration
+            {
+                IncludeErrorDetailPolicy = IncludeErrorDetailPolicy.Always // Add this line to enable detail mode in release
+            };
 
             config.MapHttpAttributeRoutes();
             config.Routes.MapHttpRoute(
@@ -33,7 +37,7 @@ namespace WebApp
             var opcoesConfiguracaoToken = new OAuthAuthorizationServerOptions()
             {
                 AllowInsecureHttp = true,
-                TokenEndpointPath = new PathString("/tokenApiLivro"),
+                TokenEndpointPath = new PathString("/api/cn/access/login"),
                 AccessTokenExpireTimeSpan = TimeSpan.FromHours(1),
                 Provider = new ProviderDeTokensDeAcesso()
             };
