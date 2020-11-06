@@ -84,7 +84,7 @@ namespace WebApp.Controllers
                     return Ok(response);
                 }
 
-                
+
                 if (!String.IsNullOrEmpty(System.Security.Claims.ClaimsPrincipal.Current.FindFirst(ClaimTypes.StreetAddress).Value))
                     livroExterno.EnderecoUsuarioLivro = System.Security.Claims.ClaimsPrincipal.Current.FindFirst(ClaimTypes.StreetAddress).Value;
 
@@ -107,6 +107,23 @@ namespace WebApp.Controllers
                 InternalServerError(e);
                 return Ok(e);
             }
+        }
+
+        [Authorize]
+        [HttpGet]
+        [Route("consultarLivrosUsuarioLogado")]
+        public List<Livro> GetConsultarMeusLivros()
+        {
+            string idUsuarioLogado = string.Empty;
+
+            if (System.Security.Claims.ClaimsPrincipal.Current.FindFirst(ClaimTypes.NameIdentifier).Value != null)
+            {
+                idUsuarioLogado = System.Security.Claims.ClaimsPrincipal.Current.FindFirst(ClaimTypes.NameIdentifier).Value;
+            }
+
+            MongoDBModel mongoDB = new MongoDBModel();
+            List<Livro> meusLivros = mongoDB.GetConsultaLivroUsuarioLogado(idUsuarioLogado);
+            return meusLivros;
         }
     }
 }

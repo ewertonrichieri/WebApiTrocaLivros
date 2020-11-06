@@ -34,6 +34,9 @@ namespace WebApp.Models
         [Display(Name = "Estado")]
         public string Estado { get; set; }
 
+        [Display(Name = "Celular")]
+        public string Celular { get; set; }
+
         public string TypeAccount { get; set; }
 
         [BsonIgnoreIfNull]
