@@ -122,6 +122,7 @@ namespace WebApp.Controllers
             return meusLivros;
         }
 
+        [Authorize]
         [HttpGet]
         [Route("getLivroTitulo")]
         public List<Livro> GetLivroTitulo(JObject jsonData)
@@ -140,6 +141,7 @@ namespace WebApp.Controllers
             }
         }
 
+        [Authorize]
         [HttpGet]
         [Route("getLivroAutor")]
         public List<Livro> GetLivroAutor(JObject jsonData)
