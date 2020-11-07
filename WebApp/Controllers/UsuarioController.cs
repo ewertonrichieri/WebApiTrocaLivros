@@ -132,6 +132,7 @@ namespace WebApp.Controllers
                 if (!string.IsNullOrEmpty(userExterno.Latitude)) { user.Latitude = userExterno.Latitude; }
                 if (!string.IsNullOrEmpty(userExterno.Longitude)) { user.Longitude = userExterno.Longitude; }
                 if (!string.IsNullOrEmpty(userExterno.Endereco)) { user.Endereco = userExterno.Endereco; }
+                if (!string.IsNullOrEmpty(userExterno.Celular)) { user.Celular = userExterno.Celular; }
 
                 messageError.Msg = "Usuário cadastrado com sucesso";
                 messageError.Status = StatusResponse.OK.ToString();
@@ -199,6 +200,7 @@ namespace WebApp.Controllers
                             messageError.Email = user.Email;
                             messageError.TypeAccount = user.TypeAccount != null ? user.TypeAccount : "User";
                             messageError.Endereco = user.Endereco != null ? user.Endereco : string.Empty;
+                            messageError.Celular = user.Celular != null ? user.Celular : string.Empty;
                             messageError.LatitudeLongitude = user.Latitude != null ? user.Latitude +";"+ user.Longitude : string.Empty;
                         }
                     }
@@ -269,7 +271,7 @@ namespace WebApp.Controllers
 
                 if (String.IsNullOrEmpty(userExterno.Nome) && userExterno.Idade == 0 && String.IsNullOrEmpty(userExterno.Cidade) 
                     && String.IsNullOrEmpty(userExterno.Endereco) && String.IsNullOrEmpty(userExterno.Email) 
-                    && String.IsNullOrEmpty(userExterno.Senha) && String.IsNullOrEmpty(userExterno.Estado))
+                    && String.IsNullOrEmpty(userExterno.Senha) && String.IsNullOrEmpty(userExterno.Estado) && String.IsNullOrEmpty(userExterno.Celular))
                 {
                     messageError.Msg = "Nenhuma alteração foi realizada";
                     messageError.Status = StatusResponse.ERROR.ToString();
@@ -385,6 +387,7 @@ namespace WebApp.Controllers
 
                     if ((!String.IsNullOrEmpty(userExterno.Latitude)) && usuario.Latitude != userExterno.Latitude) usuario.Latitude = userExterno.Latitude;
                     if ((!String.IsNullOrEmpty(userExterno.Longitude)) && usuario.Longitude != userExterno.Longitude) usuario.Longitude = userExterno.Longitude;
+                    if ((!String.IsNullOrEmpty(userExterno.Celular)) && usuario.Celular != userExterno.Celular) usuario.Celular = userExterno.Celular;
                     DateTime dt = DateTime.Now;
                     usuario.DataAlteracao = dt;
 
@@ -411,41 +414,6 @@ namespace WebApp.Controllers
             }
         }
 
-
-
-        [Route("enviarTeste")]
-        public IHttpActionResult PostEMAIL([FromBody] string value)
-        {
-            try
-            {
-                string emailBook = "bookstationapp@gmail.com";
-                string mensagemUser = "botaGofofoffoofoff";
-                string emailUser = "tested";
-
-                MailMessage message = new MailMessage();
-                SmtpClient smtp = new SmtpClient();
-                message.From = new MailAddress(emailBook);
-                message.To.Add(new MailAddress(emailBook));
-                message.Subject = "Denuncias Cult Network";
-                message.IsBodyHtml = true;
-                message.Body = mensagemUser + " ENVIADO POR: " + emailUser;
-                smtp.Port = 587;
-                smtp.Host = "smtp.gmail.com";
-                smtp.EnableSsl = true;
-                smtp.UseDefaultCredentials = false;
-                smtp.Credentials = new NetworkCredential(emailBook, "tcclivros");
-                smtp.DeliveryMethod = SmtpDeliveryMethod.Network;
-                smtp.Send(message);
-
-                return Ok("Email enviado com suceso");
-            }
-            catch (Exception e)
-            {
-                InternalServerError(e);
-            }
-            return NotFound();
-        }
-
         [HttpPost]
         [Route("enviarEmailDenuncia/{mensagemUser}/emailUser")]
         //public IHttpActionResult PostEnviarEmailDenuncia(JObject jsonData)
@@ -453,8 +421,6 @@ namespace WebApp.Controllers
         {
             try
             {
-
-
                 using (MailMessage mail = new MailMessage())
                 {
                     mail.From = new MailAddress("bookstationapp@gmail.com");
@@ -471,15 +437,6 @@ namespace WebApp.Controllers
                         smtps.Send(mail);
                     }
                 }
-
-
-
-
-
-
-
-
-
 
                 string emailBook = "bookstationapp@gmail.com";
 

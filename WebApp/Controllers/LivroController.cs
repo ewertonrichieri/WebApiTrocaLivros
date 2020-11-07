@@ -1,16 +1,9 @@
-﻿using MongoDB.Bson;
-using MongoDB.Driver;
+﻿using MongoDB.Driver;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
-using System.Net;
-using System.Net.Http;
-using System.Net.Mail;
 using System.Security.Claims;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using System.Web.Http;
 using System.Web.Http.Cors;
 using WebApp.Models;
@@ -84,9 +77,12 @@ namespace WebApp.Controllers
                     return Ok(response);
                 }
 
-                
+
                 if (!String.IsNullOrEmpty(System.Security.Claims.ClaimsPrincipal.Current.FindFirst(ClaimTypes.StreetAddress).Value))
                     livroExterno.EnderecoUsuarioLivro = System.Security.Claims.ClaimsPrincipal.Current.FindFirst(ClaimTypes.StreetAddress).Value;
+
+                if (!String.IsNullOrEmpty(System.Security.Claims.ClaimsPrincipal.Current.FindFirst(ClaimTypes.MobilePhone).Value))
+                    livroExterno.CelularUsuarioLivro = System.Security.Claims.ClaimsPrincipal.Current.FindFirst(ClaimTypes.MobilePhone).Value;
 
                 if (!String.IsNullOrEmpty(System.Security.Claims.ClaimsPrincipal.Current.FindFirst(ClaimTypes.Locality).Value))
                 {
@@ -106,6 +102,61 @@ namespace WebApp.Controllers
             {
                 InternalServerError(e);
                 return Ok(e);
+            }
+        }
+
+        [Authorize]
+        [HttpGet]
+        [Route("consultarLivrosUsuarioLogado")]
+        public List<Livro> GetConsultarMeusLivros()
+        {
+            string idUsuarioLogado = string.Empty;
+
+            if (System.Security.Claims.ClaimsPrincipal.Current.FindFirst(ClaimTypes.NameIdentifier).Value != null)
+            {
+                idUsuarioLogado = System.Security.Claims.ClaimsPrincipal.Current.FindFirst(ClaimTypes.NameIdentifier).Value;
+            }
+
+            MongoDBModel mongoDB = new MongoDBModel();
+            List<Livro> meusLivros = mongoDB.GetConsultaLivroUsuarioLogado(idUsuarioLogado);
+            return meusLivros;
+        }
+
+        [Authorize]
+        [HttpGet]
+        [Route("getLivroTitulo")]
+        public List<Livro> GetLivroTitulo(JObject jsonData)
+        {
+            dynamic json = jsonData;
+            string titulo = json.titulo;
+            if (!String.IsNullOrEmpty(titulo))
+            {
+                MongoDBModel mongoDB = new MongoDBModel();
+                List<Livro> livros = mongoDB.GetTituloLivro(titulo);
+                return livros;
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        [Authorize]
+        [HttpGet]
+        [Route("getLivroAutor")]
+        public List<Livro> GetLivroAutor(JObject jsonData)
+        {
+            dynamic json = jsonData;
+            string autor = json.autor;
+            if (!String.IsNullOrEmpty(autor))
+            {
+                MongoDBModel mongoDB = new MongoDBModel();
+                List<Livro> livros = mongoDB.GetAutorLivro(autor);
+                return livros;
+            }
+            else
+            {
+                return null;
             }
         }
     }

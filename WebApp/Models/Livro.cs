@@ -20,6 +20,7 @@ namespace WebApp.Models
         public long Isbn { get; set; }
         public string idUsuarioLivro { get; set; }
         public string EnderecoUsuarioLivro { get; set; }
+        public string CelularUsuarioLivro { get; set; }
         public string LatitudeUsuarioLivro { get; set; }
         public string LongitudeUsuarioLivro { get; set; }
         public DateTime DataEdicao { get; set; }

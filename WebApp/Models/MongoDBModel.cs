@@ -40,11 +40,29 @@ namespace WebApp.Models
             return livros;
         }
 
-        public IMongoCollection<Livro> GetLivroTitulo(string titulo)
+        public List<Livro> GetTituloLivro(string titulo)
         {
             IMongoClient client = new MongoClient(conexaoMongo);
             IMongoDatabase database = client.GetDatabase(dt);
-            IMongoCollection<Livro> livros = database.GetCollection<Livro>("Livro");
+            List<Livro> livros = database.GetCollection<Livro>("Livro").AsQueryable().Where(c=> c.Titulo.Contains(titulo)).ToList();
+
+            return livros;
+        }
+
+        public List<Livro> GetAutorLivro(string autor)
+        {
+            IMongoClient client = new MongoClient(conexaoMongo);
+            IMongoDatabase database = client.GetDatabase(dt);
+            List<Livro> livros = database.GetCollection<Livro>("Livro").AsQueryable().Where(c => c.Autor.Contains(autor)).ToList();
+
+            return livros;
+        }
+
+        public List<Livro> GetConsultaLivroUsuarioLogado(string idUsuarioLogado) {
+
+            IMongoClient client = new MongoClient(conexaoMongo);
+            IMongoDatabase database = client.GetDatabase(dt);
+            List<Livro> livros = database.GetCollection<Livro>("Livro").AsQueryable().Where(c => c.idUsuarioLivro == idUsuarioLogado).ToList();
 
             return livros;
         }
