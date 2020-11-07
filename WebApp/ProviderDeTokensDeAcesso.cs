@@ -33,6 +33,7 @@ namespace WebApp
                     identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, auth.ID));
                     identity.AddClaim(new Claim(ClaimTypes.StreetAddress, auth.Endereco));
                     identity.AddClaim(new Claim(ClaimTypes.Locality, auth.LatitudeLongitude));
+                    identity.AddClaim(new Claim(ClaimTypes.MobilePhone, auth.Celular));
                     //identity.AddClaim(new Claim("role", "user"));
                     
                     context.Validated(identity);

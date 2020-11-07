@@ -132,7 +132,7 @@ namespace WebApp.Controllers
                 if (!string.IsNullOrEmpty(userExterno.Latitude)) { user.Latitude = userExterno.Latitude; }
                 if (!string.IsNullOrEmpty(userExterno.Longitude)) { user.Longitude = userExterno.Longitude; }
                 if (!string.IsNullOrEmpty(userExterno.Endereco)) { user.Endereco = userExterno.Endereco; }
-                if (!string.IsNullOrEmpty(userExterno.Celular)) { user.Estado = userExterno.Celular; }
+                if (!string.IsNullOrEmpty(userExterno.Celular)) { user.Celular = userExterno.Celular; }
 
                 messageError.Msg = "Usuário cadastrado com sucesso";
                 messageError.Status = StatusResponse.OK.ToString();
@@ -200,6 +200,7 @@ namespace WebApp.Controllers
                             messageError.Email = user.Email;
                             messageError.TypeAccount = user.TypeAccount != null ? user.TypeAccount : "User";
                             messageError.Endereco = user.Endereco != null ? user.Endereco : string.Empty;
+                            messageError.Celular = user.Celular != null ? user.Celular : string.Empty;
                             messageError.LatitudeLongitude = user.Latitude != null ? user.Latitude +";"+ user.Longitude : string.Empty;
                         }
                     }

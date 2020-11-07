@@ -44,7 +44,16 @@ namespace WebApp.Models
         {
             IMongoClient client = new MongoClient(conexaoMongo);
             IMongoDatabase database = client.GetDatabase(dt);
-            List<Livro> livros = database.GetCollection<Livro>("Livro").AsQueryable().Where(c=> c.Titulo == titulo).ToList();
+            List<Livro> livros = database.GetCollection<Livro>("Livro").AsQueryable().Where(c=> c.Titulo.Contains(titulo)).ToList();
+
+            return livros;
+        }
+
+        public List<Livro> GetAutorLivro(string autor)
+        {
+            IMongoClient client = new MongoClient(conexaoMongo);
+            IMongoDatabase database = client.GetDatabase(dt);
+            List<Livro> livros = database.GetCollection<Livro>("Livro").AsQueryable().Where(c => c.Autor.Contains(autor)).ToList();
 
             return livros;
         }
